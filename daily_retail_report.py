@@ -1,6 +1,8 @@
 import os
 from utils.pg import PostgreSQL
 from dotenv import load_dotenv
+from datetime import date, timedelta
+from utils.kueri import kueri_target, kueri_sales
 
 # load environment
 load_dotenv(".config.env")
@@ -14,6 +16,10 @@ konfigurasi = {
     "PASSWORD": os.getenv("PASSWORD"),
 }
 
+# konstruksi tanggal laporan
+hari_ini = date.today()
+kemarin = hari_ini - timedelta(days=1)
+
 # inisiasi kelas PostgreSQL
 sql = PostgreSQL(
     host=konfigurasi["HOST"],
@@ -23,8 +29,8 @@ sql = PostgreSQL(
     pwd=konfigurasi["PASSWORD"],
 )
 
-print(
-    sql.lakukan_kueri(
-        f'select distinct "Global Dimension 1 Code" from "pnt live$value entry$437dbf0e-84ff-417a-965d-ed2bb9650972"'
-    )
-)
+# konstruksi dataframe
+df_target = sql.lakukan_kueri(kueri_target(kemarin))
+df_sales = sql.lakukan_kueri(kueri_sales(kemarin))
+print(df_target)
+print(df_sales)
