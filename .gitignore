@@ -6,3 +6,12 @@ rds/
 
 # kueri
 utils/kueri.py
+
+# token.txt
+*token.txt
+
+# output report folder
+/reports/*
+
+# pycache
+/utils/__pycache__
