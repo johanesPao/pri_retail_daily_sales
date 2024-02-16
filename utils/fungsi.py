@@ -1,5 +1,6 @@
 import os
 import math
+from typing import Literal
 import pandas as pd
 import xlwings as xw
 from O365 import Account, FileSystemTokenBackend
@@ -60,15 +61,15 @@ def kirim_email() -> None:
     mail.send()
 
 
-def generate_df_utama() -> pd.DataFrame:
+def generate_df_utama(
+    tgl_laporan: date = date.today() - timedelta(days=1),
+) -> pd.DataFrame:
     # file konfigurasi environment
     file_konfig = ".config.env"
     direktori = Path(os.path.dirname(__file__)).parent
     file_path = os.path.join(direktori, file_konfig)
     # load konfigurasi database pada .config.env
     load_dotenv(file_path)
-    # konstruksi tanggal laporan
-    tanggal_laporan = date.today() - timedelta(days=1)
     # inisiasi kelas PostgreSQL
     sql = PostgreSQL(
         host=PG_HOST,
@@ -79,9 +80,9 @@ def generate_df_utama() -> pd.DataFrame:
     )
     # konstruksi dataframe
     # target
-    df_target = sql.lakukan_kueri(kueri_target(tanggal_laporan))
+    df_target = sql.lakukan_kueri(kueri_target(tgl_laporan))
     # sales
-    df_sales = sql.lakukan_kueri(kueri_sales(tanggal_laporan))
+    df_sales = sql.lakukan_kueri(kueri_sales(tgl_laporan))
     # join dataframe
     df_merge = df_target.merge(df_sales, left_on="Toko", right_on="Toko")
     # Target Achievement
@@ -124,14 +125,59 @@ def generate_df_utama() -> pd.DataFrame:
     # return df_merge seabgai dataframe utama
     return df_merge
 
+def generate_nama_sbu(
+    sbu: Literal["ODD", "Fisik", "Bazaar"],
+    tgl: date
+) -> str:
+    match sbu:
+        case "ODD":
+            nama_sbu = "Our Daily Dose".upper()
+        case "Fisik":
+            nama_sbu = "Fisik".upper()
+        case _:
+            nama_sbu = "Bazaar".upper()
+    return f"{nama_sbu} NATIONAL SALES {tgl.strftime("%d %B %Y").upper()}"
+
+def generate_df_single_sbu(
+    data: pd.DataFrame, 
+    sbu: Literal["ODD", "Fisik", "Bazaar"]
+) -> pd.DataFrame:
+    match sbu:
+        case "ODD":
+            df_sbu = data[data["Toko"].str.startswith("OD")]
+        case "Fisik":
+            df_sbu = data[
+                (data["Toko"].str.startswith("FS")) | 
+                (data["Toko"].str.startswith("FF")) | 
+                (data["Toko"].str.startswith("FO"))
+            ]
+        case _:
+            df_sbu = data[data["Toko"].str.startswith("BZ")]
+    df_sbu.index = range(1, len(df_sbu) + 1)
+    print(df_sbu)
+    return df_sbu
 
 def generate_report(
-    path_template: Path, path_output: Path, dataframe: pd.DataFrame
+    path_template: Path, 
+    path_output: Path, 
+    dataframe: pd.DataFrame, 
+    tgl: date
 ) -> None:
-    data = dict(title="PRI Daily Retail Report", df_utama=dataframe)
+    data = dict(
+        title="PRI Daily Retail Report",
+        df_utama=dataframe.reset_index(),
+        judul_odd=generate_nama_sbu("ODD", tgl),
+        df_odd=generate_df_single_sbu(dataframe, "ODD").reset_index(),
+        judul_fisik=generate_nama_sbu("Fisik", tgl),
+        df_fisik=generate_df_single_sbu(dataframe, "Fisik").reset_index(),
+        judul_bazaar=generate_nama_sbu("Bazaar", tgl),
+        df_bazaar=generate_df_single_sbu(dataframe, "Bazaar").reset_index() if 
+            generate_df_single_sbu(dataframe, "Bazaar").shape[0] > 0 else
+            ["Data tidak ditemukan"],
+    )
     with xw.App(visible=False) as app:
         book = app.render_template(
             path_template / "report_template.xlsx",
-            path_output / "myreport.xlsx",
-            **data
+            path_output / f"PRI_Retail_Daily_Sales_Report_{tgl.strftime("%d_%b_%Y")}.xlsx",
+            **data,
         )
