@@ -3,7 +3,6 @@ import math
 from typing import Literal
 from numpy import isnan
 import pandas as pd
-import xlwings as xw
 import xlsxwriter as xlsx
 from O365 import Account, FileSystemTokenBackend
 from dotenv import load_dotenv
@@ -138,14 +137,16 @@ def generate_df_sbu(
             toko.startswith("FF") | 
             toko.startswith("FO")
         ) else 'Bazaar')
-    # drop kolom Toko dabn Nama Toko
-    df_sbu = data.drop(['Toko', 'Nama Toko'], axis=1)
+    # drop kolom Toko dan Nama Toko
+    df_sbu = data.copy().drop(['Toko', 'Nama Toko'], axis=1)
     # pandas groupby SBU
     df_sbu = df_sbu.groupby(['SBU'], as_index=False).sum()
     # reset index menjadi 1
     df_sbu.index = range(1, len(df_sbu) + 1)
-    # append stores total
-    df_sbu.loc['STORES TOTAL'] = df_sbu.sum(numeric_only=True, axis=0)
+    # append Comp Stores, Non Comp Stores dan Stores total
+    df_sbu.loc['COMP STORES TOTAL'] = data.copy().query('`MTD LY Sales`.notna() and Toko.notna()').sum(numeric_only=True, axis=0)
+    df_sbu.loc['NON COMP STORES TOTAL'] = data.copy().query('`MTD LY Sales`.isna() and Toko.notna()').sum(numeric_only=True, axis=0)
+    df_sbu.loc['STORES TOTAL'] = data.copy().sum(numeric_only=True, axis=0)
     # return dataframe sbu
     return df_sbu
 
@@ -153,7 +154,6 @@ def generate_df_area(
         data: pd.DataFrame,
         tgl_laporan: date = date.today() - timedelta(days=1),
 ) -> pd.DataFrame:
-    print(data)
     # file konfigurasi environment
     file_konfig = ".config.env"
     direktori = Path(os.path.dirname(__file__)).parent
@@ -172,23 +172,23 @@ def generate_df_area(
     # area_toko
     df_area = sql.lakukan_kueri(kueri_area_toko(tgl_laporan))
     # join dataframe df_area dan df_utama
-    df_merge = data.merge(df_area, left_on="Toko", right_on="Toko")
-    print(df_merge)
+    df_merge = data.copy().merge(df_area, left_on="Toko", right_on="Toko")
     # drop kolom Toko dan Nama Toko
     df_area = df_merge.drop(['Toko', 'Nama Toko'], axis=1)
     # pandas groupby Area
     df_area = df_area.groupby(['Area'], as_index=False).sum()
     # reset index menjadi 1
     df_area.index = range(1, len(df_area) + 1)
-    # append stores total
-    df_area.loc['STORES TOTAL'] = df_area.sum(numeric_only=True, axis=0)
+    # append Comp Stores, Non Comp Stores, dan Stores total
+    df_area.loc['COMP STORES TOTAL'] = data.copy().query('`MTD LY Sales`.notna() and Toko.notna()').sum(numeric_only=True, axis=0)
+    df_area.loc['NON COMP STORES TOTAL'] = data.copy().query('`MTD LY Sales`.isna() and Toko.notna()').sum(numeric_only=True, axis=0)
+    df_area.loc['STORES TOTAL'] = data.copy().sum(numeric_only=True, axis=0)
     # return df_area
     return df_area
 
 def generate_df_cnc(
         data: pd.DataFrame
 ) -> pd.DataFrame:
-    print(data)
     # fungsi kategorisasi cnc
     def kategorisasi_cnc(kode_toko: str, mtd_ly_sales: int) -> str:
         match kode_toko[:2]:
@@ -207,13 +207,15 @@ def generate_df_cnc(
         axis=1
         )
     # drop kolom Toko dan Nama Toko
-    df_cnc = data.drop(["Toko", "Nama Toko"], axis=1)
+    df_cnc = data.copy().drop(["Toko", "Nama Toko"], axis=1)
     # groupby CNC
     df_cnc = df_cnc.groupby(['CNC'], as_index=False).sum()
     # reset index dari 1
     df_cnc.index = range(1, len(df_cnc) + 1)
-    # append stores total
-    df_cnc.loc['STORES TOTAL'] = df_cnc.sum(numeric_only=True, axis=0)
+    # append Comp Stores, Non Comp Stores, Stores total
+    df_cnc.loc['COMP STORES TOTAL'] = data.copy().query('`MTD LY Sales`.notna() and Toko.notna()').sum(numeric_only=True, axis=0)
+    df_cnc.loc['NON COMP STORES TOTAL'] = data.copy().query('`MTD LY Sales`.isna() and Toko.notna()').sum(numeric_only=True, axis=0)
+    df_cnc.loc['STORES TOTAL'] = data.copy().sum(numeric_only=True, axis=0)
     # return df_cnc
     return df_cnc
 
@@ -240,11 +242,14 @@ def generate_df_single_sbu(
         case "odd":
             # sbu main dataframe
             df_sbu = data[data["Toko"].str.startswith("OD")].copy()
-            # sbu reset index to 1
-            df_sbu.index = range(1, len(df_sbu) + 1)
-            # append Comp Stores Total & Stores Total
-            df_sbu.loc['COMP STORES TOTAL'] = df_sbu.query('`MTD LY Sales`.notna()').sum(numeric_only=True, axis=0)
-            df_sbu.loc['STORES TOTAL'] = df_sbu.query('Toko.notna()').sum(numeric_only=True, axis=0)
+            # buat total jika row df lebih besar dari 0
+            if df_sbu.shape[0] > 0:
+                # sbu reset index to 1
+                df_sbu.index = range(1, len(df_sbu) + 1)
+                # append Comp Stores Total, Non Comp Stores dan Stores Total
+                df_sbu.loc['COMP STORES TOTAL'] = df_sbu.query('`MTD LY Sales`.notna() and Toko.notna()').sum(numeric_only=True, axis=0)
+                df_sbu.loc['NON COMP STORES TOTAL'] = df_sbu.query('`MTD LY Sales`.isna() and Toko.notna()').sum(numeric_only=True, axis=0)
+                df_sbu.loc['STORES TOTAL'] = df_sbu.query('Toko.notna()').sum(numeric_only=True, axis=0)
         case "fisik":
             # buat dataframe per sub sbu
             df_fs = data.copy().loc[data["Toko"].str.startswith("FS")]
@@ -252,28 +257,34 @@ def generate_df_single_sbu(
             df_fo = data.copy().loc[data["Toko"].str.startswith("FO")]
             # buat subtotal jika row df lebih besar dari 0
             if df_fs.shape[0] > 0:
+                # sbu reset index to 1
                 df_fs.index = range(1, len(df_fs) + 1)
                 df_fs.loc['FISIK SPORT TOTAL'] = df_fs.sum(numeric_only=True, axis=0)
             if df_ff.shape[0] > 0:
+                # sbu reset index to 1
                 df_ff.index = range(1, len(df_ff) + 1)
                 df_ff.loc['FISIK FOOTBALL TOTAL'] = df_ff.sum(numeric_only=True, axis=0)
             if df_fo.shape[0] > 0:
+                # sbu reset index to 1
                 df_fo.index = range(1, len(df_fo) + 1)
                 df_fo.loc['FACTORY OUTLET TOTAL'] = df_fo.sum(numeric_only=True, axis=0)
             # concat ketiga df sub sbu
             df_sbu = pd.concat([df_fs, df_ff, df_fo], ignore_index=False)
-            # append Comp Stores Total & Stores Total
+            # append Comp Stores, Non Comp Stores dan Stores Total
             df_sbu.loc['COMP STORES TOTAL'] = df_sbu.query('`MTD LY Sales`.notna() and Toko.notna()').sum(numeric_only=True, axis=0)
+            df_sbu.loc['NON COMP STORES TOTAL'] = df_sbu.query('`MTD LY Sales`.isna() and Toko.notna()').sum(numeric_only=True, axis=0)
             df_sbu.loc['STORES TOTAL'] = df_sbu.query('Toko.notna()').sum(numeric_only=True, axis=0)
-            # df_sbu = data[
-            #     (data["Toko"].str.startswith("FS")) | 
-            #     (data["Toko"].str.startswith("FF")) | 
-            #     (data["Toko"].str.startswith("FO"))
-            # ]
         case _:
-            df_sbu = data[data["Toko"].str.startswith("BZ")]
-    # df_sbu.index = range(1, len(df_sbu) + 1)
-    # print(df_sbu)
+            df_sbu = data.copy().loc[data["Toko"].str.startswith("BZ")]
+            # buat total jika row df lebih besar dari 0
+            if df_sbu.shape[0] > 0:
+                # sbu reset index to 1
+                df_sbu.index = range(1, len(df_sbu) + 1)
+                # append Comp Stores, Non Comp Stores dan Stores Total
+                df_sbu.loc['COMP STORES TOTAL'] = df_sbu.query('`MTD LY Sales`.notna() and Toko.notna()').sum(numeric_only=True, axis=0)
+                df_sbu.loc['NON COMP STORES TOTAL'] = df_sbu.query('`MTD LY Sales`.isna() and Toko.notna()').sum(numeric_only=True, axis=0)
+                df_sbu.loc['STORES TOTAL'] = df_sbu.query('Toko.notna()').sum(numeric_only=True, axis=0)
+    # return sbu
     return df_sbu
 
 def generate_report( 
@@ -283,7 +294,7 @@ def generate_report(
     dataframe: pd.DataFrame, 
     tgl: date
 ) -> None:
-    print(generate_df_single_sbu(dataframe, "odd"))
+    print(generate_df_single_sbu(dataframe, "bazaar"))
     # data = dict(
     #     title="PRI Daily Retail Report",
     #     df_utama=dataframe.reset_index(),
