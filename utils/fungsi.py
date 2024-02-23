@@ -3,11 +3,11 @@ import math
 from typing import Literal
 from numpy import isnan
 import pandas as pd
-import xlsxwriter as xlsx
 from O365 import Account, FileSystemTokenBackend
 from dotenv import load_dotenv
 from datetime import date, timedelta
 from pathlib import Path
+from utils.excel import excel_daily_retail_report
 
 from utils.kueri import kueri_area_toko, kueri_sales, kueri_target
 from utils.pg import PostgreSQL
@@ -287,29 +287,23 @@ def generate_df_single_sbu(
     # return sbu
     return df_sbu
 
-def generate_report( 
-    path_template: Path,
-    path_output: Path, 
-    konfigurasi: list[dict[str,str]],
-    dataframe: pd.DataFrame, 
-    tgl: date
+def generate_daily_retail_report( 
+    path_output: Path,
+    tgl: date,
+    nama_sheet: str | list[str] = "Sheet1"
 ) -> None:
-    print(generate_df_single_sbu(dataframe, "bazaar"))
-    # data = dict(
-    #     title="PRI Daily Retail Report",
-    #     df_utama=dataframe.reset_index(),
-    #     judul_odd=generate_nama_sbu("odd", tgl),
-    #     df_odd=generate_df_single_sbu(dataframe, "odd").reset_index(),
-    #     judul_fisik=generate_nama_sbu("fisik", tgl),
-    #     df_fisik=generate_df_single_sbu(dataframe, "fisik").reset_index(),
-    #     judul_bazaar=generate_nama_sbu("bazaar", tgl),
-    #     df_bazaar=generate_df_single_sbu(dataframe, "bazaar").reset_index() if 
-    #         generate_df_single_sbu(dataframe, "bazaar").shape[0] > 0 else
-    #         ["Data tidak ditemukan"],
-    # )
-    # with xw.App(visible=False) as app:
-    #     book = app.render_template(
-    #         path_template / "report_template.xlsx",
-    #         path_output / f"PRI_Retail_Daily_Sales_Report_{tgl.strftime("%d_%b_%Y")}.xlsx",
-    #         **data,
-    #     )
+    # nama file
+    nama_file = f"PRI_Retail_Daily_Sales_Report_{tgl.strftime("%d_%b_%Y")}.xlsx"
+    # dataframe utama
+    dataframe = generate_df_utama(tgl)
+    # objek dataframe report
+    objek_dataframe_report = {
+        "sbu": generate_df_sbu(dataframe),
+        "area": generate_df_area(dataframe, tgl),
+        "cnc": generate_df_cnc(dataframe),
+        "odd": generate_df_single_sbu(dataframe, "odd"),
+        "fisik": generate_df_single_sbu(dataframe, "fisik"),
+        "bazaar": generate_df_single_sbu(dataframe, "bazaar"),
+    }
+    # buat daily retail report
+    excel_daily_retail_report(path_output, nama_file, objek_dataframe_report, nama_sheet)
