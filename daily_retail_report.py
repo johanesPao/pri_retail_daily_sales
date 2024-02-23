@@ -22,7 +22,7 @@ parser.add_argument(
 tgl_laporan = parser.parse_args().tanggal
 
 # generate dataframe utama
-df_utama = generate_df_utama()
+df_utama = generate_df_utama(tgl_laporan)
 
 # konfigurasi
 konfig = [
