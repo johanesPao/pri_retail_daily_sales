@@ -7,11 +7,8 @@ rds/
 # token.txt
 *token.txt
 
-# output report folder
-/reports/*
-
 # pycache
-**/__pycache__/*
+**/utils/__pycache__
 
 # file exclusion
 *.py[cod]
