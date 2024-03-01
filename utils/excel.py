@@ -190,6 +190,20 @@ def buat_header_rdsr(
     objek_sheet.write(baris + 2, offset_kolom + 11, fh_ly_sales_subjudul, format_subjudul_fh_mid)
     objek_sheet.write(baris + 2, offset_kolom + 12, fh_ly_persen_subjudul, format_subjudul_fh_last)
 
+def loop_dataframe_rdsr(
+    kunci_df: Literal["sbu", "area", "cnc", "odd", "fisik", "bazaar"],
+    jenis_df_nt: bool,
+    df: pd.DataFrame,
+) -> None:
+    print(f"Melakukan iterasi data pada DataFrame {kunci_df}...")
+    # iterasi pada dataframe df
+    for indeks, baris in df.iterrows():
+        # jika jenis_df_nt True maka kita tidak perlu untuk melakukan evaluasi indeks pada dataframe    
+        if jenis_df_nt:
+            print(baris)
+        else:
+            print(indeks, baris)
+
 def tulis_data_rdsr(
     file: str,
     objek_df: dict[str, pd.DataFrame],
@@ -228,6 +242,8 @@ def tulis_data_rdsr(
             buat_header_rdsr(
                 tgl, buku_report, sheet_report, kunci, kunci in kunci_df_nt, data.shape[1]
             )
+            # looping dalam dataframe
+            loop_dataframe_rdsr(kunci, kunci in kunci_df_nt, data)
 
     # tutup dan output workbook report
     buku_report.close()
