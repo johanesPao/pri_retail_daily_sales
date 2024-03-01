@@ -324,6 +324,8 @@ def persentase_df_daily_retail_report(
             kolom.extend(kolom_fix)
             # reorder kolom
             df = df[kolom]
+            # replace NaN dengan 0
+            df.fillna(0, inplace=True)
             # kembalikan dataframe
             return df
         case "area":
@@ -335,6 +337,8 @@ def persentase_df_daily_retail_report(
             kolom.extend(kolom_fix)
             # reorder kolom
             df = df[kolom]
+            # replace NaN dengan 0
+            df.fillna(0, inplace=True)
             # kembalikan dataframe
             return df
         case "cnc":
@@ -346,6 +350,8 @@ def persentase_df_daily_retail_report(
             kolom.extend(kolom_fix)
             # reorder kolom
             df = df[kolom]
+            # replace NaN dengan 0
+            df.fillna(0, inplace=True)
             # kembalikan dataframe
             return df
         case "odd" | "fisik" | "bazaar":
@@ -357,6 +363,8 @@ def persentase_df_daily_retail_report(
             kolom.extend(kolom_fix)
             # reorder kolom
             df = df[kolom]
+            # replace NaN dengan 0
+            df.fillna(0, inplace=True)
             # kembalikan dataframe
             return df
         # raise TypeError jika mode_df tidak dikenali
