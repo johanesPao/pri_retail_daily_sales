@@ -4,9 +4,6 @@ rds/
 # any .env file
 *.env
 
-# kueri
-utils/kueri.py
-
 # token.txt
 *token.txt
 
