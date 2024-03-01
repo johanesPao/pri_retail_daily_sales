@@ -1,0 +1,15 @@
+{
+    "colorWheel.settings.workspaceColor": "hsl(247,62%,71%)",
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "server": "gp-d9jyy7frv19345067o-master.gpdbmaster.ap-southeast-5.rds.aliyuncs.com",
+            "port": 5432,
+            "driver": "PostgreSQL",
+            "name": "lscentral_dwhp",
+            "database": "lscentral_dwhp",
+            "username": "pao",
+            "password": "p@0^123"
+        }
+    ]
+}
