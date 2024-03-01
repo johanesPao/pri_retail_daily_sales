@@ -32,7 +32,9 @@ def memuat_env() -> dict[str, dict[str, str | None]]:
             "MONGO" : {
                 "URI": os.getenv("MONGO_URI"),
                 "DB": os.getenv("MONGO_DB"),
-                "KOLEKSI_PARAMETER": os.getenv("KOLEKSI_PARAMETER")
+                "KOLEKSI_PARAMETER": os.getenv("KOLEKSI_PARAMETER"),
+                "ID_PARAM_BC": os.getenv("ID_PARAM_BC"),
+                "ID_PARAM_PD": os.getenv("ID_PARAM_PD")
             }
         }
     except:
@@ -40,18 +42,18 @@ def memuat_env() -> dict[str, dict[str, str | None]]:
 
 def memuat_parameter_bc(mongo_env: dict[str, str]) -> dict[str, any]:
     try:
-        dokumen_parameter = ambil_dokumen_by_id(mongo_env["URI"], mongo_env["DB"], mongo_env["KOLEKSI_PARAMETER"], '646329e84e369f5fd4fabf27')
+        dokumen_parameter_bc = ambil_dokumen_by_id(mongo_env["URI"], mongo_env["DB"], mongo_env["KOLEKSI_PARAMETER"], mongo_env["ID_PARAM_BC"])
         return {
-            "tabel": ambil_field_dokumen(dokumen_parameter, "tabel_bc"),
-            "kolom": ambil_field_dokumen(dokumen_parameter, "kolom_bc"),
-            "argumen": ambil_field_dokumen(dokumen_parameter, "argumen_bc")
+            "tabel": ambil_field_dokumen(dokumen_parameter_bc, "tabel_bc"),
+            "kolom": ambil_field_dokumen(dokumen_parameter_bc, "kolom_bc"),
+            "argumen": ambil_field_dokumen(dokumen_parameter_bc, "argumen_bc")
         }
     except:
         raise Exception("Gagal inisialisasi memuat parameter kueri")
     
 def memuat_parameter_pd(mongo_env: dict[str, str]) -> dict[str, any]:
     try:
-        dokumen_parameter_pd = ambil_dokumen_by_id(mongo_env["URI"], mongo_env["DB"], mongo_env["KOLEKSI_PARAMETER"], '65e17f47f998cdad302e481e')
+        dokumen_parameter_pd = ambil_dokumen_by_id(mongo_env["URI"], mongo_env["DB"], mongo_env["KOLEKSI_PARAMETER"], mongo_env["ID_PARAM_PD"])
         return {
             "nama": ambil_field_dokumen(dokumen_parameter_pd, "nama"),
             "tabel": ambil_field_dokumen(dokumen_parameter_pd, "tabel"),
