@@ -32,10 +32,10 @@ jobs:
       - name: Checkout Action
         uses: actions/checkout@v4
       # Install UPX untuk kompresi ukuran executable hasil kompilasi pyinstaller
-      - name: apt update dan install UPX
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install upx -y
+      - name: Gunakan ghaction-upx
+        uses: crazy-max/ghaction-upx@v3
+        with:
+          install-only: true
       - name: Set up python
         uses: actions/setup-python@v5
         with:
