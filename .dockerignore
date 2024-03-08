@@ -40,6 +40,9 @@ var/
 .env
 rds/
 
+# O365 token file
+o365*
+
 # Vim swap files
 **/*.swp
 
