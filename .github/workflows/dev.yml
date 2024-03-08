@@ -57,14 +57,15 @@ jobs:
       - name: Kompresi compiled output
         run: upx --best ./dist/pri_rdsr
       - name: Test eksekusi compiled executable
-        id: test_eksekusi
         run: |
           mkdir -p ./dist/reports
           ./dist/pri_rdsr 2>&1 || exit_code=$?
           echo "kode_exit=$exit_code" >> "$GITHUB_ENV"
       - name: Cek jika terjadi kesalahan
         run: |
-          if [ "$kode_exit" -ne 0 ]; then
+          if [ -n "$kode_exit" ] && [ "$kode_exit" -ne 0 ]; then
             echo "Terjadi kesalahan saat eksekusi program"
             exit 1
+          else
+            echo "[OK] Tidak ada kesalahan yang terjadi"
           fi

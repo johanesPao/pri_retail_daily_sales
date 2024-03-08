@@ -396,6 +396,8 @@ def generate_daily_retail_report(
     if env["CI"]:
         for kunci, df in objek_dataframe_report.items():
             print(f"Panjang data {kunci}: {len(df)} baris")
+        # print path_output untuk debugging pada proses output dalam CI
+        print(f"path_output: {path_output}")
     else:
         # buat daily retail report
         excel_rdsr(path_output, nama_file, objek_dataframe_report, tgl, nama_sheet)
