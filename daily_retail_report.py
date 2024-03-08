@@ -2,8 +2,8 @@ from pathlib import Path
 import os
 import argparse
 from datetime import date, timedelta
-from utils.inisiasi import memuat_env, memuat_parameter_bc, memuat_parameter_pd
 
+from utils.inisiasi import memuat_env, memuat_parameter_bc, memuat_parameter_pd
 from utils.fungsi import (
     generate_daily_retail_report,
 )
@@ -31,10 +31,7 @@ env = memuat_env()
 
 # memuat parameter untuk kueri
 print("Memuat parameter kueri...")
-parameter = {
-    "bc": memuat_parameter_bc(env["MONGO"]),
-    "pd": memuat_parameter_pd(env["MONGO"])
-}
+parameter = {"bc": memuat_parameter_bc(env["MONGO"]), "pd": memuat_parameter_pd(env["MONGO"])}
 
 # setup worksheet list
 worksheet_list = {
