@@ -40,6 +40,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
       - name: Install pyinstaller
         run: pip install pyinstaller
       - name: Install, setup, aktivasi virtual environment
@@ -59,10 +60,10 @@ jobs:
         id: test_eksekusi
         run: |
           ./dist/pri_rdsr 2>&1 || exit_code=$?
-          echo "::set-output name=kode_exit::$exit_code"
+          echo "kode_exit=exit_code" >> "$GITHUB_ENV"
       - name: Cek jika terjadi kesalahan
         run: |
-          if [ "$(( $(echo "${{steps.test_eksekusi.outputs.kode_exit}}") ))" -ne 0]; then
+          if [ "$(( $(echo "$kode_exit") ))" -ne 0 ]; then
             echo "Terjadi kesalahan saat eksekusi program"
             exit 1
           fi
