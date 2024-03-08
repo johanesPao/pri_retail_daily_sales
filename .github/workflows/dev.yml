@@ -60,7 +60,8 @@ jobs:
         id: test_eksekusi
         run: |
           mkdir -p ./dist/reports
-          ./dist/pri_rdsr 2>&1 || exit_code=$?
+          cd dist
+          ./pri_rdsr 2>&1 || exit_code=$?
           echo "kode_exit=$exit_code" >> "$GITHUB_ENV"
       - name: Cek jika terjadi kesalahan
         run: |
