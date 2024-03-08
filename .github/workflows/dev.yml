@@ -59,11 +59,12 @@ jobs:
       - name: Test eksekusi compiled executable
         id: test_eksekusi
         run: |
+          mkdir -p ./dist/reports
           ./dist/pri_rdsr 2>&1 || exit_code=$?
-          echo "kode_exit=exit_code" >> "$GITHUB_ENV"
+          echo "kode_exit=$exit_code" >> "$GITHUB_ENV"
       - name: Cek jika terjadi kesalahan
         run: |
-          if [ "$(( $(echo "$kode_exit") ))" -ne 0 ]; then
+          if [ "$kode_exit" -ne 0 ]; then
             echo "Terjadi kesalahan saat eksekusi program"
             exit 1
           fi
