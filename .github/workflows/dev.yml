@@ -1,12 +1,16 @@
 name: Test build service
 on:
+  # Jalankan workflow ini pada setiap commit yang dipush ke
+  # dalam origin dev
   push:
     branches:
       - dev
 jobs:
   compile-dan-test:
     runs-on: ubuntu-latest
+    # gunakan environment pengembangan
     environment: pengembangan
+    # memuat enviornment secrets
     env:
       HOST: ${{secrets.HOST}}
       DBNAME: ${{secrets.DBNAME}}
@@ -27,6 +31,7 @@ jobs:
     steps:
       - name: Checkout Action
         uses: actions/checkout@v4
+      # Install UPX untuk kompresi ukuran executable hasil kompilasi pyinstaller
       - name: apt update dan install UPX
         run: |
           sudo apt-get update -y
@@ -49,7 +54,7 @@ jobs:
       - name: Compile script
         run: pyinstaller daily_retail_report.py --clean --nowindow --onefile --name pri_rdsr
       - name: Kompresi compiled output
-        run: upx --best /dist/pri_rdsr
+        run: upx --best ./dist/pri_rdsr
       - name: Test eksekusi compiled executable
         id: test_eksekusi
         run: |
