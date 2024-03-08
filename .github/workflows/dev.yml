@@ -1,0 +1,63 @@
+name: Test build service
+on:
+  push:
+    branches:
+      - dev
+jobs:
+  compile-dan-test:
+    runs-on: ubuntu-latest
+    environment: pengembangan
+    env:
+      HOST: ${{secrets.HOST}}
+      DBNAME: ${{secrets.DBNAME}}
+      PORT: ${{secrets.PORT}}
+      USER: ${{secrets.USER}}
+      PASSWORD: ${{secrets.PASSWORD}}
+      MONGO_URI: ${{secrets.MONGO_URI}}
+      MONGO_DB: ${{secrets.MONGO_DB}}
+      KOLEKSI_PARAMETER: ${{secrets.KOLEKSI_PARAMETER}}
+      ID_PARAM_BC: ${{secrets.ID_PARAM_BC}}
+      ID_PARAM_PD: ${{secrets.ID_PARAM_PD}}
+      O365_TOKEN_FILE_CONTENT: ${{secrets.O365_TOKEN_FILE_CONTENT}}
+      O365_TOKEN_FILE: ${{secrets.O365_TOKEN_FILE}}
+      O365_TENANT_ID: ${{secrets.O365_TENANT_ID}}
+      O365_CLIENT_ID: ${{secrets.O365_CLIENT_ID}}
+      O365_CLIENT_SECRET: ${{secrets.O365_CLIENT_SECRET}}
+      O365_SECRET_ID: ${{secrets.O365_SECRET_ID}}
+    steps:
+      - name: Checkout Action
+        uses: actions/checkout@v4
+      - name: apt update dan install UPX
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install upx -y
+      - name: Set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install pyinstaller
+        run: pip install pyinstaller
+      - name: Install, setup, aktivasi virtual environment
+        run: |
+          pip install virtualenv
+          python -m venv reporting
+          source reporting/bin/activate
+      - name: Install modul pada virtual environment
+        run: pip install -r requirements.txt
+      - name: Tulis O365_TOKEN_FILE_CONTENT pada O365_TOKEN_FILE
+        run: echo "$O365_TOKEN_FILE_CONTENT" >> $O365_TOKEN_FILE
+      - name: Compile script
+        run: pyinstaller daily_retail_report.py --clean --nowindow --onefile --name pri_rdsr
+      - name: Kompresi compiled output
+        run: upx --best /dist/pri_rdsr
+      - name: Test eksekusi compiled executable
+        id: test_eksekusi
+        run: |
+          ./dist/pri_rdsr 2>&1 || exit_code=$?
+          echo "::set-output name=kode_exit::$exit_code"
+      - name: Cek jika terjadi kesalahan
+        run: |
+          if [ "$(( $(echo "${{steps.test_eksekusi.outputs.kode_exit}}") ))" -ne 0]; then
+            echo "Terjadi kesalahan saat eksekusi program"
+            exit 1
+          fi
