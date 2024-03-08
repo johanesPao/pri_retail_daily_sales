@@ -37,6 +37,8 @@ def memuat_env() -> dict[str, dict[str, str | None]]:
                 "ID_PARAM_BC": os.getenv("ID_PARAM_BC"),
                 "ID_PARAM_PD": os.getenv("ID_PARAM_PD"),
             },
+            # Running in CI
+            "CI": os.getenv("CI"),
         }
     except:
         raise Exception("Gagal inisialisasi memuat environment")
