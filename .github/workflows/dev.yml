@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - dev
+      - output-fix
+
 jobs:
   compile-dan-test:
     runs-on: ubuntu-latest
@@ -32,34 +34,33 @@ jobs:
       - name: Checkout Action
         uses: actions/checkout@v4
       # Install UPX untuk kompresi ukuran executable hasil kompilasi pyinstaller
-      - name: Gunakan ghaction-upx
-        uses: crazy-max/ghaction-upx@v3
-        with:
-          install-only: true
+      #   - name: Gunakan ghaction-upx
+      #     uses: crazy-max/ghaction-upx@v3
+      #     with:
+      #       install-only: true
       - name: Set up python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: "pip"
-      - name: Install pyinstaller
-        run: pip install pyinstaller
-      - name: Install, setup, aktivasi virtual environment
-        run: |
-          pip install virtualenv
-          python -m venv reporting
-          source reporting/bin/activate
+      #   - name: Install pyinstaller
+      #     run: pip install pyinstaller
+      #   - name: Install, setup, aktivasi virtual environment
+      #     run: |
+      #       pip install virtualenv
+      #       python -m venv reporting
+      #       source reporting/bin/activate
       - name: Install modul pada virtual environment
         run: pip install -r requirements.txt
       - name: Tulis O365_TOKEN_FILE_CONTENT pada O365_TOKEN_FILE
         run: echo "$O365_TOKEN_FILE_CONTENT" >> $O365_TOKEN_FILE
-      - name: Compile script
-        run: pyinstaller daily_retail_report.py --clean --nowindow --onefile --name pri_rdsr
-      - name: Kompresi compiled output
-        run: upx --best ./dist/pri_rdsr
-      - name: Test eksekusi compiled executable
+      #   - name: Compile script
+      #     run: pyinstaller daily_retail_report.py --clean --nowindow --onefile --name pri_rdsr
+      #   - name: Kompresi compiled output
+      #     run: upx --best ./dist/pri_rdsr
+      - name: Test eksekusi script
         run: |
-          mkdir -p ./dist/reports
-          ./dist/pri_rdsr 2>&1 || exit_code=$?
+          python daily_retail_report.py 2>&1 || exit_code=$?
           echo "kode_exit=$exit_code" >> "$GITHUB_ENV"
       - name: Cek jika terjadi kesalahan
         run: |
