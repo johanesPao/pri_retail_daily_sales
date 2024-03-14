@@ -393,11 +393,18 @@ def generate_daily_retail_report(
     }
     # untuk saat ini jika dalam CI, cukup print kunci dan length dari df
     # kita belum menemukan cara melakukan workbook.close() pada runner github action yang benar
-    if env["CI"]:
-        for kunci, df in objek_dataframe_report.items():
-            print(f"Panjang data {kunci}: {len(df)} baris")
-        # print path_output untuk debugging pada proses output dalam CI
-        print(f"path_output: {path_output}")
-    else:
-        # buat daily retail report
-        excel_rdsr(path_output, nama_file, objek_dataframe_report, tgl, nama_sheet)
+    # if env["CI"]:
+    #     for kunci, df in objek_dataframe_report.items():
+    #         print(f"Panjang data {kunci}: {len(df)} baris")
+    #     # print path_output untuk debugging pada proses output dalam CI
+    #     print(f"path_output: {path_output}")
+    # else:
+    #     # buat daily retail report
+    #     excel_rdsr(path_output, nama_file, objek_dataframe_report, tgl, nama_sheet)
+    # release this part, don't compile on github action, just run the script
+    for kunci, df in objek_dataframe_report.items():
+        print(f"Panjang data {kunci}: {len(df)} baris")
+    # print path_output untuk debugging pada proses output dalam CI
+    print(f"path_output: {path_output}")
+    # buat daily retail report
+    excel_rdsr(path_output, nama_file, objek_dataframe_report, tgl, nama_sheet)
