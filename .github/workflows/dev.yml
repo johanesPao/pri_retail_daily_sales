@@ -31,6 +31,9 @@ jobs:
       O365_CLIENT_ID: ${{secrets.O365_CLIENT_ID}}
       O365_CLIENT_SECRET: ${{secrets.O365_CLIENT_SECRET}}
       O365_SECRET_ID: ${{secrets.O365_SECRET_ID}}
+      FROM: ${{secrets.FROM}}
+      TO: ${{secrets.TO}}
+      CC: ${{secrets.CC}}
       WORKFLOW_BRANCH: ${{github.ref_name}}
     steps:
       # checkout repositori
