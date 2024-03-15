@@ -1,0 +1,79 @@
+name: Publish Retail Daily Sales Report
+on:
+  # Jalankan workflow ini berdasarkan cron scheduling setiap harinya lewat tengah malam
+  schedule:
+    # runner pada github action menggunakan UTC maka kita perlu setting cron
+    # untuk berjalan +7 dari UTC. misal kita menginginkan script untuk berjalan
+    # pada pukul 00.11 WIB, maka setup cron schedule adalah '11 17 * * *'' yang
+    # berarti script akan dijalankan setiap pukul 17:11 UTC atau 00:11 UTC+7 (WIB)
+    # ============================================================================
+    # nantinya di branch main, kita akan men-set workflow ini untuk berjalan pada
+    # pukul 17:05 UTC atau 00:05 UTC+7 (WIB) plus beberapa menit delay yang terjadi pada
+    # runner github action
+    - cron: "*/5 * * * *"
+
+jobs:
+  compile-dan-publish-report:
+    runs-on: ubuntu-latest
+    # gunakan environment produksi untuk report scheduling
+    environment: produksi
+    # memuat enviornment secrets
+    env:
+      HOST: ${{secrets.HOST}}
+      DBNAME: ${{secrets.DBNAME}}
+      PORT: ${{secrets.PORT}}
+      USER: ${{secrets.USER}}
+      PASSWORD: ${{secrets.PASSWORD}}
+      MONGO_URI: ${{secrets.MONGO_URI}}
+      MONGO_DB: ${{secrets.MONGO_DB}}
+      KOLEKSI_PARAMETER: ${{secrets.KOLEKSI_PARAMETER}}
+      ID_PARAM_BC: ${{secrets.ID_PARAM_BC}}
+      ID_PARAM_PD: ${{secrets.ID_PARAM_PD}}
+      O365_TOKEN_FILE_CONTENT: ${{secrets.O365_TOKEN_FILE_CONTENT}}
+      O365_TOKEN_FILE: ${{secrets.O365_TOKEN_FILE}}
+      O365_TENANT_ID: ${{secrets.O365_TENANT_ID}}
+      O365_CLIENT_ID: ${{secrets.O365_CLIENT_ID}}
+      O365_CLIENT_SECRET: ${{secrets.O365_CLIENT_SECRET}}
+      O365_SECRET_ID: ${{secrets.O365_SECRET_ID}}
+      FROM: ${{secrets.FROM}}
+      TO: ${{secrets.TO}}
+      CC: ${{secrets.CC}}
+      WORKFLOW_BRANCH: ${{github.ref_name}}
+    steps:
+      # print timestamp pada runner
+      - name: Runner Timestamp
+        run: echo "$(date +'%Y-%m-%dT%H:%M:%S')"
+      # checkout repositori
+      - name: Checkout Action
+        uses: actions/checkout@v4
+      # setup locale untuk runner
+      - name: Set up locale untuk runner
+        run: |
+          sudo apt-get update && sudo apt-get install locales -y
+          sudo locale-gen id_ID
+      # setup python versi 3.12 dan caching
+      - name: Set up python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      # install modul yang diperlukan script
+      - name: Install modul pada virtual environment
+        run: pip install -r requirements.txt
+      # tulis konten file token o365
+      - name: Tulis O365_TOKEN_FILE_CONTENT pada O365_TOKEN_FILE
+        run: echo "$O365_TOKEN_FILE_CONTENT" >> $O365_TOKEN_FILE
+      # test running script daily_retail_report.py
+      - name: Test eksekusi script
+        run: |
+          python daily_retail_report.py 2>&1 || exit_code=$?
+          echo "kode_exit=$exit_code" >> "$GITHUB_ENV"
+      # cek jika running script menghasilkan kode_exit dan kode_exit tidak sama dengan 0
+      - name: Cek jika terjadi kesalahan
+        run: |
+          if [ -n "$kode_exit" ] && [ "$kode_exit" -ne 0 ]; then
+            echo "[Error] Terjadi kesalahan saat eksekusi program"
+            exit 1
+          else
+            echo "[OK] Tidak ada kesalahan yang terjadi"
+          fi
