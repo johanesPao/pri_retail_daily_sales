@@ -93,7 +93,7 @@ def kirim_email(
         pesan.save_message()
         print("[email] Setting attachment pesan...")
         if file != None:
-            for indeks, attachment in file:
+            for indeks, attachment in enumerate(file):
                 pesan.attachments.add(attachment)
                 print(f"[email] {pesan.attachments[indeks]}")
         else:
