@@ -20,6 +20,13 @@ def memuat_env() -> dict[str, dict[str, str | None]]:
                 "TOKEN_FILE": os.getenv("O365_TOKEN_FILE"),
                 "CLIENT_ID": os.getenv("O365_CLIENT_ID"),
                 "CLIENT_SECRET": os.getenv("O365_CLIENT_SECRET"),
+                "TENANT_ID": os.getenv("O365_TENANT_ID"),
+            },
+            # atribut email
+            "EMAIL": {
+                "FROM": os.getenv("FROM"),
+                "TO": os.getenv("TO").split("|") if os.getenv("TO") != None else None,
+                "CC": os.getenv("CC").split("|") if os.getenv("TO") != None else None,
             },
             # PostgreSQL env
             "POSTGRESQL": {
@@ -37,8 +44,13 @@ def memuat_env() -> dict[str, dict[str, str | None]]:
                 "ID_PARAM_BC": os.getenv("ID_PARAM_BC"),
                 "ID_PARAM_PD": os.getenv("ID_PARAM_PD"),
             },
-            # Running in CI
-            "CI": os.getenv("CI"),
+            # Continuous Integration
+            "CI": {
+                # Running dalam CI? boolean
+                "IN_CI": os.getenv("CI"),
+                # Branch atau tag yang men-trigger workflow
+                "WORKFLOW_BRANCH": os.getenv("WORKFLOW_BRANCH"),
+            },
         }
     except:
         raise Exception("Gagal inisialisasi memuat environment")

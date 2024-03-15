@@ -241,17 +241,18 @@ def loop_dataframe_rdsr(
     print(f"Melakukan iterasi data {kunci_df}...")
     # set baris awal
     baris = 3
-    # format persen
-    format_persen = objek_buku.add_format({
-        "bold": 1,
-        "num_format": "0.0%",
-        "fg_color": "#E2EFDA"
-    })
-    format_persen_cnc = objek_buku.add_format({
-        "bold": 1,
-        "num_format": "0.0%",
-        "fg_color": "#FFF2CC"
-    })
+    # format persen dalam fungsi
+    def format_persen(
+        nilai: float, 
+        objek_buku: xlsx.Workbook, 
+        mode_cnc: bool
+    ) -> xlsx.workbook.Format:
+        return objek_buku.add_format({
+            "bold": 1,
+            "num_format": "0.0%",
+            "fg_color": "#FFF2CC" if mode_cnc else "#E2EFDA",
+            "color": "#FF204E" if nilai <= 0.5 else "#E8751A" if nilai <= 1 else "#4CCD99"
+        })
     # format nominal
     format_nominal = objek_buku.add_format({
         "num_format": "#,##0.00,,_)jt;(#,##0.00,,)jt",
@@ -278,9 +279,9 @@ def loop_dataframe_rdsr(
                 # jika bukan kolom 0
                 else:
                     if isinstance(indeks, str) and indeks in judul_cnc:
-                        objek_sheet.write(baris, hitung, baris_data.iloc[hitung], format_persen_cnc if hitung in kolom_persen else format_nominal_cnc)
+                        objek_sheet.write(baris, hitung, baris_data.iloc[hitung], format_persen(baris_data.iloc[hitung], objek_buku, True) if hitung in kolom_persen else format_nominal_cnc)
                     else:
-                        objek_sheet.write(baris, hitung, baris_data.iloc[hitung], format_persen if hitung in kolom_persen else format_nominal)
+                        objek_sheet.write(baris, hitung, baris_data.iloc[hitung], format_persen(baris_data.iloc[hitung], objek_buku, False) if hitung in kolom_persen else format_nominal)
         else:
             # dalam kasus df bukanlah jenis_df_nt, maka kita akan melakukan pengisian tiga kolom awal dengan
             # No, Store Code dan Location
@@ -304,9 +305,9 @@ def loop_dataframe_rdsr(
                 # jika hitung lebih besar atau sama dengan offset_kolom_cnc
                 else:
                     if isinstance(indeks, str) and indeks in judul_cnc:
-                        objek_sheet.write(baris, hitung, baris_data.iloc[hitung - offset_kolom_regular], format_persen_cnc if hitung in kolom_persen else format_nominal_cnc)
+                        objek_sheet.write(baris, hitung, baris_data.iloc[hitung - offset_kolom_regular], format_persen(baris_data.iloc[hitung - offset_kolom_regular], objek_buku, True) if hitung in kolom_persen else format_nominal_cnc)
                     else:
-                        objek_sheet.write(baris, hitung, baris_data.iloc[hitung - offset_kolom_regular], format_persen if hitung in kolom_persen else format_nominal)
+                        objek_sheet.write(baris, hitung, baris_data.iloc[hitung - offset_kolom_regular], format_persen(baris_data.iloc[hitung - offset_kolom_regular], objek_buku, False) if hitung in kolom_persen else format_nominal)
         # increment baris
         baris += 1
         # lebar kolom dan freeze pane

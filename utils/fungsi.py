@@ -1,10 +1,12 @@
+import locale
 import os
 import math
 from typing import Literal
 from numpy import isnan
 import pandas as pd
-from O365 import Account, FileSystemTokenBackend
-from datetime import date, timedelta
+from O365 import Account, FileSystemTokenBackend, MSGraphProtocol
+from datetime import date, timedelta, datetime
+from pytz import timezone
 from pathlib import Path
 from utils.excel import excel_rdsr
 
@@ -28,27 +30,76 @@ def autentikasi_o365(
         token_eksis = os.path.isfile(o365_env["TOKEN_FILE"])
         credentials = (o365_env["CLIENT_ID"], o365_env["CLIENT_SECRET"])
         token_backend = FileSystemTokenBackend(token_filename=o365_env["TOKEN_FILE"]) if token_eksis else None
+        # autentikasi account perlu dilakukan terlebih dahulu satu kali menggunakan metode "on behalf of user",
+        # dikarenakan metode auh lainnya mungkin memerlukan setup pada organisasi.
+        # seperti yang telah dijelaskan di bawah, jika tidak memiliki file dengan konten token o365, maka kita
+        # perlu menjalankan satu kali fungsi
+        # account = Account(credentials)
+        # account.authenticate(["basic", "mailbox", "message_all"])
+        # kedua baris di atas akan menghasilkan file .txt dengan konten scopes, token akses dan token refresh
+        # seperti ini:
+        # {
+        #  "token_type": "Bearer",
+        #  "scope": [
+        #   "profile",
+        #   "openid",
+        #   "email",
+        #   "https://graph.microsoft.com/Mail.Read",
+        #   "https://graph.microsoft.com/Mail.ReadWrite",
+        #   "https://graph.microsoft.com/Mail.Send",
+        #   "https://graph.microsoft.com/User.Read"
+        #  ],
+        #  "expires_in": 5371,
+        #  "ext_expires_in": 5371,
+        #  "access_token": akses_token,
+        #  "refresh_token": refresh_token,
+        #  "expires_at": 1710223536.265685
+        # }
         account = Account(
-            credentials, scopes=["basic", "message_all"], token_backend=token_backend
+            credentials, scopes=["basic", "mailbox", "message_all"], token_backend=token_backend
         )
         if not token_eksis:
             # metode ini akan memunculkan prompt cli untuk autentikasi aplikasi
             # cari cara untuk mengautomatisasi proses auth ini
-            account.authenticate()
+            account = Account(credentials)
+            account.authenticate(["basic", "mailbox", "message_all"])
         return account
     except:
         raise Exception("Gagal melakukan autentikasi dan mengembalikan Account tenant O365")
 
 
-def kirim_email(env: dict[str, dict[str, str | None]]) -> None:
-    print("Memulai pengiriman email...")
+def kirim_email(
+    env: dict[str, dict[str, str | None]],
+    file: list[str] | None,
+    from_email: str | None,
+    to_email: list[str] | None,
+    cc_email: list[str] | None,
+    judul_email: str | None,
+    body_email: str | None
+) -> None:
     try:
         account = autentikasi_o365(env["O365"])
-        mail = account.new_message()
-        mail.to.add("johanes.pao@pri.co.id")
-        mail.subject = "Testing!"
-        mail.body = "Halo halo, ini cuma testing"
-        mail.send()
+        print("[email] Setting pengirim pesan...")
+        mailbox = account.mailbox(from_email if from_email != None else 'noname@nowhere.id')
+        pesan = mailbox.new_message()
+        print("[email] Setting TO pesan...")
+        pesan.to.add(to_email if to_email != None else ['johanes.pao@pri.co.id'])
+        print("[email] Setting CC pesan...")
+        pesan.cc.add(cc_email if cc_email != None else ['johanes.pao@pri.co.id'])
+        print("[email] Setting subyek pesan...")
+        pesan.subject = judul_email if judul_email != None else 'No Subject'
+        print("[email] Setting body pesan...")
+        pesan.body = body_email if body_email != None else '<p style="color:red; margin: 20px;">Tidak ada email body</p>'
+        pesan.save_message()
+        print("[email] Setting attachment pesan...")
+        if file != None:
+            for indeks, attachment in file:
+                pesan.attachments.add(attachment)
+                print(f"[email] {pesan.attachments[indeks]}")
+        else:
+            print("[email] Tidak ada file yang dilampirkan...")
+        print("[email] Mengirimkan pesan.")
+        pesan.send()
     except:
         raise Exception("Gagal melakukan pengiriman email")
 
@@ -377,7 +428,7 @@ def generate_daily_retail_report(
     env: dict[str, dict[str, str | None]],
     parameter_kueri: dict[str, any],
     nama_sheet: str | dict[str, str] = "Sheet1"
-) -> None:
+) -> dict[str, dict[str, pd.DataFrame]]:
     # nama file
     nama_file = f"PRI_Retail_Daily_Sales_Report_{tgl.strftime("%d_%b_%Y")}.xlsx"
     # dataframe utama
@@ -401,6 +452,7 @@ def generate_daily_retail_report(
     # else:
     #     # buat daily retail report
     #     excel_rdsr(path_output, nama_file, objek_dataframe_report, tgl, nama_sheet)
+
     # release this part, don't compile on github action, just run the script
     for kunci, df in objek_dataframe_report.items():
         print(f"Panjang data {kunci}: {len(df)} baris")
@@ -408,3 +460,262 @@ def generate_daily_retail_report(
     print(f"path_output: {path_output}")
     # buat daily retail report
     excel_rdsr(path_output, nama_file, objek_dataframe_report, tgl, nama_sheet)
+    return {
+        "lokasi_file": path_output / nama_file,
+        "data": objek_dataframe_report
+    }
+
+def body_email_rdsr(data: dict[str, pd.DataFrame], tgl: date) -> str:
+    def html_one_field_td_string(df: pd.DataFrame, df_key: Literal["SBU", "Area", "CNC"], mode: Literal["Daily", "WTD", "MTD"]) -> str:
+        output_teks = ""
+        # cek jika df_key tidak ada dalam kolom df maka raise exception dan exit
+        if df_key not in df.columns.to_numpy().tolist():
+            raise Exception("'df_key' tidak cocok dengan kolom pada dataframe")
+        # assignment teks kolom berdasar mode
+        match mode:
+            case "Daily":
+                sales = "Daily Sales"
+                target = "Daily Target"
+                target_ach = "Daily Ach."
+            case "WTD":
+                sales = "WTD Sales"
+                target = "WTD Target"
+                target_ach = "WTD Ach."
+                ly_sales = "WTD LY Sales"
+                ly_ach = "WTD LY Ach."
+            case "MTD":
+                sales = "MTD Sales"
+                target = "MTD Target"
+                target_ach = "MTD Ach."
+                ly_sales = "MTD LY Sales"
+                ly_ach = "MTD LY Ach."
+            case _:
+                raise Exception("'mode' tidak dikenali")
+        # drop baris dengan nilai NaN pada kolom df_key
+        df = df.dropna(subset=[df_key])
+        # select specific kolom
+        kolom = [df_key, sales, target, target_ach] if mode == "Daily" else [df_key, sales, target, target_ach, ly_sales, ly_ach]
+        df_disp = df.copy()[kolom]
+        # drop baris dengan semua nilai ada kolom sama dengan 0 pada kolom [1:]
+        kolom_nilai = kolom[1:]
+        df_disp = df_disp.loc[(df_disp[kolom_nilai] != 0.0).any(axis=1)]
+        for _, baris in df_disp.iterrows():
+            # styling percentage berdasar nilainya
+            ach_style = '#FF004D' if baris.loc[target_ach] <= 0.5 else '#F6D776' if baris.loc[target_ach] <= 1 else '#B7E1B5'
+            ly_ach_style = ('#FF004D' if baris.loc[ly_ach] <= 0.5 else '#F6D776' if baris.loc[ly_ach] <= 1 else '#B7E1B5') if mode != "Daily" else None
+            # concatenate output baris dalam html
+            if mode != "Daily":
+                output_teks = output_teks + f"""
+                    <tr style="background-color: '#35374B'">
+                        <td style="padding: 10px; text-align: left; font-weight: bold">{baris.loc[df_key]}</td>
+                        <td style="padding: 10px; text-align: center;">{locale.currency(baris.loc[sales], grouping=True)[:-3]}</td>
+                        <td style="padding: 10px; text-align: center;">{locale.currency(baris.loc[target], grouping=True)[:-3]}</td>
+                        <td style="padding: 10px; text-align: center;"><span style="color: {ach_style};">{'{:.2%}'.format(baris.loc[target_ach])}</span></td>
+                        <td style="padding: 10px; text-align: center;">{locale.currency(baris.loc[ly_sales], grouping=True)[:-3]}</td>
+                        <td style="padding: 10px; text-align: center;"><span style="color: {ly_ach_style};">{'{:.2%}'.format(baris.loc[ly_ach])}</span></td>
+                    </tr>
+                """
+            else:
+                output_teks = output_teks + f"""
+                    <tr style="background-color: '#35374B'">
+                        <td style="padding: 10px; text-align: left; font-weight: bold">{baris.loc[df_key]}</td>
+                        <td style="padding: 10px; text-align: center;">{locale.currency(baris.loc[sales], grouping=True)[:-3]}</td>
+                        <td style="padding: 10px; text-align: center;">{locale.currency(baris.loc[target], grouping=True)[:-3]}</td>
+                        <td style="padding: 10px; text-align: center;"><span style="color: {ach_style};">{'{:.2%}'.format(baris.loc[target_ach])}</span></td>
+                    </tr>
+                """
+        # return output_teks yang merupakan html
+        return output_teks
+    
+    sbu_daily_string = html_one_field_td_string(data["sbu"], "SBU", "Daily") 
+    area_daily_string = html_one_field_td_string(data["area"], "Area", "Daily")
+    cnc_daily_string = html_one_field_td_string(data["cnc"], "CNC", "Daily")
+    sbu_mtd_string = html_one_field_td_string(data["sbu"], "SBU", "MTD")
+    area_mtd_string = html_one_field_td_string(data["area"], "Area", "MTD")
+    cnc_mtd_string = html_one_field_td_string(data["cnc"], "CNC", "MTD")
+    style_css = """
+        <!--[if mso]>
+        <style type="text/css">
+            /* style CSS regular untuk desktop email client */
+            body {
+                background-color: #6C7B95;
+                color: #EEEEEE;
+                text-align: center;
+            }
+            .skala-tabel {
+                background-color: #222831;
+                text-align: left;
+            }
+            /* style CSS untuk tampilan mobile (Tab) */
+            @media only screen and (max-width: 640px) {
+                body {
+                    background-color: #6C7B95;
+                    color: #EEEEEE;
+                    text-align: center;
+                }
+                .skala-tabel {
+                    width: 440px !important;
+                    margin: 0 !important;
+                    background-color: #222831 !important;
+                    text-align: left;
+                }
+            }
+            /* style CSS untuk tampilan mobile (Phone) */
+            @media only screen and (max-width: 479px) {
+                body {
+                    background-color: #6C7B95;
+                    color: #EEEEEE;
+                    text-align: center;
+                }
+                .skala-tabel {
+                    width: 100% !important;
+                    margin: 0 !important;
+                    background-color: #222831 !important;
+                    text-align: left;
+                }
+            }
+        </style>
+        <![endif]-->
+    """
+    return f"""
+        <html xmlns="https://www.w3.org/1999/xhtml" lang="id" xml:lang="id"
+        xmlns:v="urn:schemas-microsoft-com:vml"
+        xmlns:o="urn:schemas-microsoft-com:office:office">
+            <head>
+                {style_css}
+                <!--[if gte mso 9]><xml>
+                <o:OfficeDocumentSettings>
+                <o:AllowPNG/>
+                <o:PixelsPerInch>96</o:PixelsPerInch>
+                </o:OfficeDocumentSettings>
+                </xml><![endif]-->
+            </head>
+            <body>
+                <table cellpadding="10" cellspacing="0" class="skala-tabel">
+                    <tr>
+                        <td align="center">
+                            <span style="font-size: 36px; color: #1597BB;">Selamat pagi!</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table width="100%" cellpadding="5" style="text-align: left;">
+                                <tr>
+                                    <td>
+                                        Berikut adalah rangkuman OMNAS untuk data yang berakhir pada tanggal {tgl.strftime("%d %B %Y")}. 
+                                        Data ini dikompilasi dari database PostgreSQL pada tanggal {datetime.now(timezone('Asia/Jakarta')).strftime('%d %B %Y pukul %H:%M:%S')}.<br><br>
+                                        Untuk detail penjualan per toko dapat dilihat pada file terlampir pada email ini.<br><br>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <table width="100%" cellpadding="10" style="text-align: left;">
+                                <tr>
+                                    <td>
+                                        <strong style="font-size: 36px; color: #FFD523;">Daily Sales</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table width="100%">
+                                            <tr>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Strategic Business Unit</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Sales</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Target</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">% Target</th>
+                                            </tr>
+                                            {sbu_daily_string}
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table width="100%">
+                                            <tr>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Area</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Sales</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Target</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">% Target</th>
+                                            </tr>
+                                            {area_daily_string}
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table width="100%"
+                                            <tr>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Comp Stores Type</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Sales</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Target</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">% Target</th>
+                                            </tr>
+                                            {cnc_daily_string}
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <strong style="font-size: 36px; color: #FFD523;">Month to Date Sales</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table width="100%">
+                                            <tr>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Strategic Business Unit</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Sales</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Target</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">% Target</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Last Year Sales</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">% Last Year</th>
+                                            </tr>
+                                            {sbu_mtd_string}
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table width="100%">
+                                            <tr>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Area</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Sales</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Target</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">% Target</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Last Year Sales</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">% Last Year</th>
+                                            </tr>
+                                            {area_mtd_string}
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <table width="100%"
+                                            <tr>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Comp Stores Type</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Sales</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Target</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">% to Target</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">Last Year Sales</th>
+                                                <th style="padding: 10px; text-align: center; font-size: 16px; background-color: #007F73;">% to Last Year</th>
+                                            </tr>
+                                            {cnc_mtd_string}
+                                        </table>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <span style="color: #EC625F; font-size: 12px;"><i>* file terlampir dan konten pada email ini di-generate menggunakan python script yang running on schedule pada github actions, jika terjadi ketidaksesuaian data atau hal lainnya, mohon hubungi pengirim email.</i></span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </body>
+        </html>
+    """

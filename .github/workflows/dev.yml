@@ -5,7 +5,6 @@ on:
   push:
     branches:
       - dev
-      - output-fix
 
 jobs:
   compile-dan-test:
@@ -30,6 +29,7 @@ jobs:
       O365_CLIENT_ID: ${{secrets.O365_CLIENT_ID}}
       O365_CLIENT_SECRET: ${{secrets.O365_CLIENT_SECRET}}
       O365_SECRET_ID: ${{secrets.O365_SECRET_ID}}
+      WORKFLOW_BRANCH: ${{github.ref_name}}
     steps:
       # checkout repositori
       - name: Checkout Action
