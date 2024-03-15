@@ -10,7 +10,7 @@ on:
     # nantinya di branch main, kita akan men-set workflow ini untuk berjalan pada
     # pukul 17:05 UTC atau 00:05 UTC+7 (WIB) plus beberapa menit delay yang terjadi pada
     # runner github action
-    - cron: "*/5 * * * *"
+    - cron: "*5 17 * * *"
 
 jobs:
   compile-dan-publish-report:
