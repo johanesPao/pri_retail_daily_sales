@@ -5,6 +5,8 @@ on:
   push:
     branches:
       - dev
+      # temporary apply workflow ini pada branch fix-workflow-locale di remote repository
+      - fix-workflow-locale
 
 jobs:
   compile-dan-test:
@@ -34,6 +36,11 @@ jobs:
       # checkout repositori
       - name: Checkout Action
         uses: actions/checkout@v4
+      # setup locale untuk runner
+      - name: Set up locale untuk runner
+        run: |
+          sudo apt-get update && sudo apt-get install locales -y
+          sudo locale-gen id_ID
       # setup python versi 3.12 dan caching
       - name: Set up python
         uses: actions/setup-python@v5
