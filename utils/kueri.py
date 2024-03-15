@@ -4,16 +4,16 @@ class Kueri:
             "bc": {
                 "tabel": parameter["bc"]["tabel"],
                 "kolom": parameter["bc"]["kolom"],
-                "argumen": parameter["bc"]["argumen"]
+                "argumen": parameter["bc"]["argumen"],
             },
             "pd": {
                 "nama": parameter["pd"]["nama"],
                 "tabel": parameter["pd"]["tabel"],
-                "kolom": parameter["pd"]["kolom"]
-            }
+                "kolom": parameter["pd"]["kolom"],
+            },
         }
 
-    def kueri_target(self, tgl_report: str):
+    def kueri_sales(self, tgl_report: str):
         return f"""
             with store as (
                 select distinct
@@ -123,8 +123,7 @@ class Kueri:
             order by store."Toko"
         """
 
-
-    def kueri_sales(self, tgl_report: str):
+    def kueri_target(self, tgl_report: str):
         return f"""
             with toko AS (
                 select distinct
@@ -184,7 +183,6 @@ class Kueri:
             on
                 toko."Toko" = mtd."Toko"
         """
-
 
     def kueri_area_toko(self, tgl_report: str) -> str:
         return f"""
