@@ -39,6 +39,9 @@ jobs:
       CC: ${{secrets.CC}}
       WORKFLOW_BRANCH: ${{github.ref_name}}
     steps:
+      # print timestamp pada runner
+      - name: Runner Timestamp
+        run: echo "$(date +'%Y-%m-%dT%H:%M:%S')"
       # checkout repositori
       - name: Checkout Action
         uses: actions/checkout@v4
