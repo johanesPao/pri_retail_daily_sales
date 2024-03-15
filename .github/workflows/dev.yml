@@ -29,11 +29,19 @@ jobs:
       O365_CLIENT_ID: ${{secrets.O365_CLIENT_ID}}
       O365_CLIENT_SECRET: ${{secrets.O365_CLIENT_SECRET}}
       O365_SECRET_ID: ${{secrets.O365_SECRET_ID}}
+      FROM: ${{secrets.FROM}}
+      TO: ${{secrets.TO}}
+      CC: ${{secrets.CC}}
       WORKFLOW_BRANCH: ${{github.ref_name}}
     steps:
       # checkout repositori
       - name: Checkout Action
         uses: actions/checkout@v4
+      # setup locale untuk runner
+      - name: Set up locale untuk runner
+        run: |
+          sudo apt-get update && sudo apt-get install locales -y
+          sudo locale-gen id_ID
       # setup python versi 3.12 dan caching
       - name: Set up python
         uses: actions/setup-python@v5
