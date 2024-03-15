@@ -10,7 +10,7 @@ on:
     # nantinya di branch main, kita akan men-set workflow ini untuk berjalan pada
     # pukul 17:05 UTC atau 00:05 UTC+7 (WIB) plus beberapa menit delay yang terjadi pada
     # runner github action
-    - cron: "40 17 * * *"
+    - cron: "5 18 * * *"
 
 jobs:
   compile-dan-publish-report:
@@ -39,6 +39,7 @@ jobs:
       TO: ${{secrets.TO}}
       CC: ${{secrets.CC}}
       WORKFLOW_BRANCH: ${{github.ref_name}}
+      TZ: Asia/Jakarta
     steps:
       # set Timezone runner ke Asia/Jakarta
       - name: Set Timezone Asia/Jakarta
