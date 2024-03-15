@@ -1,4 +1,4 @@
-name: Test build service
+name: Publish Retail Daily Sales Report
 on:
   # Jalankan workflow ini berdasarkan cron scheduling setiap harinya lewat tengah malam
   schedule:
