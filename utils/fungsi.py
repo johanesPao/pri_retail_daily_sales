@@ -5,6 +5,7 @@ from typing import Literal
 from numpy import isnan
 import pandas as pd
 from O365 import Account, FileSystemTokenBackend, MSGraphProtocol
+from O365.utils import ImportanceLevel
 from datetime import date, timedelta, datetime
 from pytz import timezone
 from pathlib import Path
@@ -90,6 +91,8 @@ def kirim_email(
         pesan.subject = judul_email if judul_email != None else 'No Subject'
         print("[email] Setting body pesan...")
         pesan.body = body_email if body_email != None else '<p style="color:red; margin: 20px;">Tidak ada email body</p>'
+        print("[email] Setting ImportanceLevel pesan menjadi High...")
+        pesan.importance = ImportanceLevel.High
         pesan.save_message()
         print("[email] Setting attachment pesan...")
         if file != None:
