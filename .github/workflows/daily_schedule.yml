@@ -8,8 +8,8 @@ on:
     # berarti script akan dijalankan setiap pukul 17:11 UTC atau 00:11 UTC+7 (WIB)
     # ============================================================================
     # untuk kepentingan testing workflow ini, maka kita akan menjalankan workflow ini
-    # menggunakan step dimulai dari menit 0 dan setiap 5 menit
-    - cron: "0/5 * * * *"
+    # menggunakan step setiap 5 menit
+    - cron: "*/5 * * * *"
 
 jobs:
   compile-dan-publish-report:
