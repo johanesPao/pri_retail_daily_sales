@@ -40,6 +40,11 @@ jobs:
       CC: ${{secrets.CC}}
       WORKFLOW_BRANCH: ${{github.ref_name}}
     steps:
+      # set Timezone runner ke Asia/Jakarta
+      - name: Set Timezone Asia/Jakarta
+        run : |
+          sudo unlink /etc/localtime
+          sudo ln -s /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
       # print timestamp pada runner
       - name: Runner Timestamp
         run: echo "$(date +'%Y-%m-%dT%H:%M:%S')"
