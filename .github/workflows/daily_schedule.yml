@@ -7,8 +7,9 @@ on:
     # pada pukul 00.11 WIB, maka setup cron schedule adalah '11 17 * * *'' yang
     # berarti script akan dijalankan setiap pukul 17:11 UTC atau 00:11 UTC+7 (WIB)
     # ============================================================================
-    # untuk kepentingan testing workflow ini, maka kita akan menjalankan workflow ini
-    # menggunakan step setiap 5 menit
+    # nantinya di branch main, kita akan men-set workflow ini untuk berjalan pada
+    # pukul 17:05 UTC atau 00:05 UTC+7 (WIB) plus beberapa menit delay yang terjadi pada
+    # runner github action
     - cron: "*/5 * * * *"
 
 jobs:
