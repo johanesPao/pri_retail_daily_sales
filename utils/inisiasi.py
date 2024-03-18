@@ -27,6 +27,7 @@ def memuat_env() -> dict[str, dict[str, str | None]]:
                 "FROM": os.getenv("FROM"),
                 "TO": os.getenv("TO").split("|") if os.getenv("TO") != None else None,
                 "CC": os.getenv("CC").split("|") if os.getenv("TO") != None else None,
+                "BCC": os.getenv("BCC").split("|") if os.getenv("BCC") != None else None,
             },
             # PostgreSQL env
             "POSTGRESQL": {
