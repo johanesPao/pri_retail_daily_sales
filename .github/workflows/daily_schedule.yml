@@ -13,7 +13,8 @@ on:
     - cron: "5 17 * * *"
 
 jobs:
-  compile-dan-publish-report:
+  eksekusi-dan-publish-report:
+    name: Eksekusi dan Publish Report
     runs-on: ubuntu-latest
     # gunakan environment produksi untuk report scheduling
     environment: produksi
@@ -43,7 +44,7 @@ jobs:
     steps:
       # set Timezone runner ke Asia/Jakarta
       - name: Set Timezone Asia/Jakarta
-        run : |
+        run: |
           sudo unlink /etc/localtime
           sudo ln -s /usr/share/zoneinfo/Asia/Jakarta /etc/localtime
       # print timestamp pada runner
@@ -83,3 +84,12 @@ jobs:
           else
             echo "[OK] Tidak ada kesalahan yang terjadi"
           fi
+  keep-workflow-alive:
+    name: Keep Workflow Alive
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+      # mencegah workflow disabled setelah repo tidak memiliki aktifitas selama 60 hari
+      - uses: gautamkrishnar/keepalive-workflow@v2
