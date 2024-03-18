@@ -75,6 +75,7 @@ def kirim_email(
     from_email: str | None,
     to_email: list[str] | None,
     cc_email: list[str] | None,
+    bcc_email: list[str] | None,
     judul_email: str | None,
     body_email: str | None
 ) -> None:
@@ -84,9 +85,11 @@ def kirim_email(
         mailbox = account.mailbox(from_email if from_email != None else 'noname@nowhere.id')
         pesan = mailbox.new_message()
         print("[email] Setting TO pesan...")
-        pesan.to.add(to_email if to_email != None else ['johanes.pao@pri.co.id'])
+        pesan.to.add(to_email if to_email != None else [from_email])
         print("[email] Setting CC pesan...")
-        pesan.cc.add(cc_email if cc_email != None else ['johanes.pao@pri.co.id'])
+        pesan.cc.add(cc_email if cc_email != None else [from_email])
+        print("[email] Setting BCC pesan...")
+        pesan.bcc.add(bcc_email if bcc_email != None else [from_email])
         print("[email] Setting subyek pesan...")
         pesan.subject = judul_email if judul_email != None else 'No Subject'
         print("[email] Setting body pesan...")

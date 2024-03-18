@@ -69,11 +69,12 @@ run_in_dev_ci = env["CI"]["IN_CI"] and env["CI"]["WORKFLOW_BRANCH"] == 'dev'
 # dalam CI dengan workflow branch 'dev'
 to_email = from_email if run_in_dev_ci else atribut_email["TO"]
 cc_email = from_email if run_in_dev_ci else atribut_email["CC"]
+bcc_email = from_email if run_in_dev_ci else atribut_email["BCC"]
 judul_email = f"PRI Retail Daily Sales Summary ({tgl_laporan.strftime("%d %B %Y")})"
 body = body_email_rdsr(konten["data"], tgl_laporan)
 
 # kirim email ke pengguna
 print("Mengirimkan email ke pengguna...")
-kirim_email(env, [konten["lokasi_file"]], from_email, to_email, cc_email, judul_email, body)
+kirim_email(env, [konten["lokasi_file"]], from_email, to_email, cc_email, bcc_email, judul_email, body)
 
 print("Script selesai dieksekusi!")
